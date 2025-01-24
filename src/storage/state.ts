@@ -9,7 +9,7 @@ import { AppDataSync, SelectResultType } from "./types.js";
 export abstract class State {
     protected db?: sqlite3.Database;
     protected table: string = "states"
-    protected session: string = "session_"
+    protected session: string = ""
 
     constructor() {
 
@@ -72,91 +72,6 @@ export abstract class State {
     abstract purgeKeys(): Promise<void>;
     abstract purgeAll(): Promise<void>;
 
-}
-
-
-export class StateSQLiteDB extends State {
-    filename: string;
-
-    constructor(config: { ["filename"]: string, ["table"]?: string }) {
-        super();
-        this.filename = config.filename;
-        this.table = config.table ?? this.table;
-    }
-
-    async init() {
-        this.db = await sqlite3.open({
-            filename: this.filename,
-            driver: Sqlite3Driver
-        });
-        await this.createTableIfNotExists();
-        await this.ensureSession();
-    }
-
-    async createTableIfNotExists() {
-        this.databaseIsNull();
-        await this.db?.run(`CREATE TABLE IF NOT EXISTS ${this.table} (
-             id VARCHAR(255) PRIMARY KEY,
-             value TEXT,
-             session VARCHAR(255),
-             timestamp TIMESTAMP DEFAIULT CURRENT_TIMESTAMP
-        );`);
-    }
-
-    async selectItemById(table: string, id: string): Promise<SelectResultType> {
-        this.databaseIsNull();
-        return await this.db?.get(`SELECT * FROM ${table} WHERE id = ?`, [`${this.session}-${id}`]) as SelectResultType;
-    }
-
-    async read(id: string): Promise<any> {
-        const data = await this.selectItemById(this.table, id);
-        if (!data || !data.value) {
-            return null;
-        }
-        return JSON.parse(data.value, BufferJSON.reviver);
-    }
-
-    async write(id: string, data: any): Promise<void> {
-        this.databaseIsNull();
-        const fixed = JSON.stringify(data, BufferJSON.replacer);
-        await this.db?.run(`INSERT INTO ${this.table} (
-            id, value, session
-         ) VALUES (?, ?, ?) 
-         ON CONFLICT DO UPDATE SET value=?, timestamp=CURRENT_TIMESTAMP`,
-            [`${this.session}-${id}`, fixed, this.session, fixed]);
-    }
-
-    async delete(id: string): Promise<void> {
-        this.databaseIsNull();
-        await this.db?.run(`DELETE FROM ${this.table} WHERE id = ${this.session}-${id}`);
-    }
-
-    async purgeAll(): Promise<void> {
-        this.databaseIsNull();
-        await this.db?.run(`DELETE FROM ${this.table} WHERE session = ${this.session}`);
-    }
-
-    async ensureSession(): Promise<void> {
-        this.databaseIsNull();
-        const result: SelectResultType = await this.db?.get(`SELECT * FROM ${this.table} WHERE id = ?`, ["creds"]);
-        if (result == undefined) {
-            await this.db?.run(`INSERT INTO ${this.table} (
-                    id, value, session    
-                ) VALUES (?, ?, ?)`,
-                ['creds', JSON.stringify(initAuthCreds()), this.session]
-            );
-        }
-    }
-
-    async purgeKeys(): Promise<void> {
-        this.databaseIsNull();
-        await this.db?.run(`DELETE FROM ${this.table} WHERE session = ${this.session} AND id != ?`, ['creds']);
-    }
-
-    async deleteOldSessions(): Promise<void> {
-
-    }
-
     async asState() {
         const creds = (await this.read('creds')) || initAuthCreds;
 
@@ -197,6 +112,91 @@ export class StateSQLiteDB extends State {
                 return await this.selectItemById(table, id);
             }
         }
+    }
+
+}
+
+
+export class StateSQLiteDB extends State {
+    filename: string;
+
+    constructor(config: { ["filename"]: string, ["table"]?: string }) {
+        super();
+        this.filename = config.filename;
+        this.table = config.table ?? this.table;
+    }
+
+    async init() {
+        this.db = await sqlite3.open({
+            filename: this.filename,
+            driver: Sqlite3Driver
+        });
+        await this.createTableIfNotExists();
+        await this.ensureSession();
+    }
+
+    async createTableIfNotExists() {
+        this.databaseIsNull();
+        await this.db?.run(`CREATE TABLE IF NOT EXISTS ${this.table} (
+             id VARCHAR(255) PRIMARY KEY,
+             value TEXT,
+             session VARCHAR(255),
+             timestamp TIMESTAMP DEFAIULT CURRENT_TIMESTAMP
+        );`);
+    }
+
+    async selectItemById(table: string, id: string): Promise<SelectResultType> {
+        this.databaseIsNull();
+        return await this.db?.get(`SELECT * FROM ${table} WHERE id = ?`, [id]) as SelectResultType;
+    }
+
+    async read(id: string): Promise<any> {
+        const data = await this.selectItemById(this.table, id);
+        if (!data || !data.value) {
+            return null;
+        }
+        return JSON.parse(data.value, BufferJSON.reviver);
+    }
+
+    async write(id: string, data: any): Promise<void> {
+        this.databaseIsNull();
+        const fixed = JSON.stringify(data, BufferJSON.replacer);
+        await this.db?.run(`INSERT INTO ${this.table} (
+            id, value, session
+         ) VALUES (?, ?, ?) 
+         ON CONFLICT DO UPDATE SET value=?, timestamp=CURRENT_TIMESTAMP`,
+            [id, fixed, this.session, fixed]);
+    }
+
+    async delete(id: string): Promise<void> {
+        this.databaseIsNull();
+        await this.db?.run(`DELETE FROM ${this.table} WHERE id = ${this.session}-${id}`);
+    }
+
+    async purgeAll(): Promise<void> {
+        this.databaseIsNull();
+        await this.db?.run(`DELETE FROM ${this.table} WHERE session = ${this.session}`);
+    }
+
+    async ensureSession(): Promise<void> {
+        this.databaseIsNull();
+        const result: SelectResultType = await this.db?.get(`SELECT * FROM ${this.table} WHERE id = ?`, ["creds"]);
+        if (result == undefined) {
+            await this.db?.run(`INSERT INTO ${this.table} (
+                    id, value, session    
+                ) VALUES (?, ?, ?)`,
+                ['creds', JSON.stringify(initAuthCreds()), this.session]
+            );
+        }
+    }
+
+    async purgeKeys(): Promise<void> {
+        this.databaseIsNull();
+        await this.db?.run(`DELETE FROM ${this.table} WHERE session = ${this.session} AND id != ?`, ['creds']);
+    }
+
+    async deleteOldSessions(): Promise<void> {
+
     }
 
 }
