@@ -106,9 +106,9 @@ export abstract class State {
                 }
             },
             saveCreds: async () => { await this.write('creds', creds) },
-            clear: async() => { await this.purgeKeys() },
-            removeCreds: async() => { await this.purgeAll() },
-            query: async(table: string, id: string) => {
+            clear: async () => { await this.purgeKeys() },
+            removeCreds: async () => { await this.purgeAll() },
+            query: async (table: string, id: string) => {
                 return await this.selectItemById(table, id);
             }
         }
