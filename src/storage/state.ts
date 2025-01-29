@@ -1,4 +1,4 @@
-import { AuthenticationCreds, AuthenticationState, BufferJSON, initAuthCreds, SignalKeyStore } from "@whiskeysockets/baileys";
+import { BufferJSON, initAuthCreds } from "@whiskeysockets/baileys";
 
 import * as sqlite3 from "sqlite";
 import pkg from 'sqlite3';
@@ -10,6 +10,7 @@ export abstract class State {
     protected db?: sqlite3.Database;
     protected table: string = "states"
     protected session: string = ""
+    protected allTables: string[] = []
 
     constructor() {
 
@@ -62,7 +63,7 @@ export abstract class State {
         return message;
     }
 
-    abstract createTableIfNotExists(): Promise<void>;
+    abstract createTableIfNotExists(tableName: string): Promise<void>;
     abstract deleteOldSessions(): Promise<void>;
     abstract ensureSession(): Promise<void>;
     abstract selectItemById(table: string, id: string): Promise<SelectResultType>;
@@ -80,6 +81,7 @@ export abstract class State {
                 creds,
                 keys: {
                     get: async (type: string, ids: string[]) => {
+                        console.log("============== GET ===============")
                         const data: any = {};
                         for (const id of ids) {
                             let value = await this.read(`${type}-${id}`);
@@ -91,6 +93,7 @@ export abstract class State {
                         return data;
                     },
                     set: async (data: any) => {
+                        console.log("============== SET ===============")
                         for (const cat in data) {
                             for (const id in data[cat]) {
                                 const value = data[cat][id];
@@ -109,6 +112,7 @@ export abstract class State {
             clear: async () => { await this.purgeKeys() },
             removeCreds: async () => { await this.purgeAll() },
             query: async (table: string, id: string) => {
+                console.log("============== QUERY ===============")
                 return await this.selectItemById(table, id);
             }
         }
@@ -131,23 +135,42 @@ export class StateSQLiteDB extends State {
             filename: this.filename,
             driver: Sqlite3Driver
         });
-        await this.createTableIfNotExists();
+        await this.createTableIfNotExists(this.table);
         await this.ensureSession();
     }
 
-    async createTableIfNotExists() {
+    async makeSureTableExists(table: string) {
+        if (this.allTables.includes(table)) {
+            return true;
+        }
+        const tables: { [name: string]: string }[] | undefined = await this.db?.all(`SELECT name FROM sqlite_master WHERE type='table';`);
+        if (tables == undefined) {
+            this.createTableIfNotExists(table);
+            return true;
+        }
+        if (this.allTables.includes(table)) {
+            return true;
+        }
+        tables.filter(t => !this.allTables.includes(t.name)).forEach(t => {
+            this.createTableIfNotExists(t.name);
+        });
+        return true;
+    }
+
+    async createTableIfNotExists(tableName: string) {
         this.databaseIsNull();
-        await this.db?.run(`CREATE TABLE IF NOT EXISTS ${this.table} (
+        await this.db?.run(`CREATE TABLE IF NOT EXISTS ${tableName} (
              id VARCHAR(255) PRIMARY KEY,
              value TEXT,
              session VARCHAR(255),
              timestamp TIMESTAMP DEFAIULT CURRENT_TIMESTAMP
         );`);
+        this.allTables.push(tableName);
     }
 
     async selectItemById(table: string, id: string): Promise<SelectResultType> {
         this.databaseIsNull();
-        return await this.db?.get(`SELECT * FROM ${table} WHERE id = ?`, [id]) as SelectResultType;
+        return await this.db?.get(`SELECT * FROM ${this.table} WHERE id = ?`, [id]) as SelectResultType;
     }
 
     async read(id: string): Promise<any> {
@@ -160,6 +183,7 @@ export class StateSQLiteDB extends State {
 
     async write(id: string, data: any): Promise<void> {
         this.databaseIsNull();
+        console.log("============== WRITE ===============: " + id)
         const fixed = JSON.stringify(data, BufferJSON.replacer);
         await this.db?.run(`INSERT INTO ${this.table} (
             id, value, session
@@ -170,7 +194,8 @@ export class StateSQLiteDB extends State {
 
     async delete(id: string): Promise<void> {
         this.databaseIsNull();
-        await this.db?.run(`DELETE FROM ${this.table} WHERE id = ${this.session}-${id}`);
+        console.log("============== DELETE ===============: " + `DELETE FROM ${this.table} WHERE id = '${id}'`)
+        await this.db?.run(`DELETE FROM ${this.table} WHERE id = ?`, [id]);
     }
 
     async purgeAll(): Promise<void> {
