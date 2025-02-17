@@ -1,8 +1,7 @@
 import { Boom } from '@hapi/boom';
 import P from 'pino';
 
-
-import { makeWASocket, DisconnectReason } from "@whiskeysockets/baileys";
+import { makeWASocket, DisconnectReason, WAMessage } from "@whiskeysockets/baileys";
 import NodeCache from "node-cache";
 import { BotConfig } from "../configs/botConfig.js";
 import { StateSQLiteDB } from "../storage/state.js";
@@ -13,13 +12,11 @@ export class Bot {
     public botNumber?: string;
 
     private sock?: ReturnType<typeof makeWASocket>;
-    private language: string;
     private groupCache = new NodeCache({ stdTTL: 5 * 60, useClones: false })
 
     constructor(config: BotConfig) {
         this.name = config.name;
         this.ownerId = config.ownerNumber;
-        this.language = config.language ?? "enus"
     }
 
     async init() {
@@ -57,7 +54,6 @@ export class Bot {
             if (connection === 'close') {
                 const shouldReconnect = (lastDisconnect?.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut
                 console.log('connection closed due to ', lastDisconnect?.error, ', reconnecting ', shouldReconnect)
-                // reconnect if not logged out
                 if (shouldReconnect) {
                     return this.init();
                 }
@@ -74,5 +70,6 @@ export class Bot {
             }
         });
     }
+
 
 }
