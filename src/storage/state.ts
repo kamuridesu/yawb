@@ -81,7 +81,7 @@ export abstract class State {
                 creds,
                 keys: {
                     get: async (type: string, ids: string[]) => {
-                        console.log("============== GET ===============")
+                        // console.log("============== GET ===============")
                         const data: any = {};
                         for (const id of ids) {
                             let value = await this.read(`${type}-${id}`);
@@ -93,7 +93,7 @@ export abstract class State {
                         return data;
                     },
                     set: async (data: any) => {
-                        console.log("============== SET ===============")
+                        // console.log("============== SET ===============")
                         for (const cat in data) {
                             for (const id in data[cat]) {
                                 const value = data[cat][id];
@@ -112,7 +112,7 @@ export abstract class State {
             clear: async () => { await this.purgeKeys() },
             removeCreds: async () => { await this.purgeAll() },
             query: async (table: string, id: string) => {
-                console.log("============== QUERY ===============")
+                // console.log("============== QUERY ===============")
                 return await this.selectItemById(table, id);
             }
         }
@@ -183,7 +183,7 @@ export class StateSQLiteDB extends State {
 
     async write(id: string, data: any): Promise<void> {
         this.databaseIsNull();
-        console.log("============== WRITE ===============: " + id)
+        // console.log("============== WRITE ===============: " + id)
         const fixed = JSON.stringify(data, BufferJSON.replacer);
         await this.db?.run(`INSERT INTO ${this.table} (
             id, value, session
@@ -194,7 +194,7 @@ export class StateSQLiteDB extends State {
 
     async delete(id: string): Promise<void> {
         this.databaseIsNull();
-        console.log("============== DELETE ===============: " + `DELETE FROM ${this.table} WHERE id = '${id}'`)
+        // console.log("============== DELETE ===============: " + `DELETE FROM ${this.table} WHERE id = '${id}'`)
         await this.db?.run(`DELETE FROM ${this.table} WHERE id = ?`, [id]);
     }
 

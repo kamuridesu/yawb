@@ -39,6 +39,7 @@ type QuotedMessage = {
 }
 
 type ParsedMessage = {
+    id?: string | null;
     body: string;
     author: Author;
     group: Group | undefined;
@@ -47,11 +48,15 @@ type ParsedMessage = {
 }
 
 export async function parseMessage(message: WAMessage, bot: Bot) {
-    const key = message.message!; // This function is only called after data validation
+    if (message.message === undefined || message.message == null) {
+        return;
+    }
+    const key = message.message;
 
     const originJid = message.key.remoteJid ?? "";
 
     const messageData: ParsedMessage = {
+        id: message.key.id,
         author: {
             chatJid: originJid,
             name: message.pushName ?? "",
@@ -76,6 +81,9 @@ export async function parseMessage(message: WAMessage, bot: Bot) {
             if (!type) return;
             messageData.mentions = message.message?.extendedTextMessage?.contextInfo?.mentionedJid ?? [];
             const unparsedQuotedMessage = JSON.parse(JSON.stringify(message).replace('quotedM', 'm')).message.extendedTextMessage.contextInfo;
+            if (!unparsedQuotedMessage || !unparsedQuotedMessage.participant) {
+                return;
+            }
             const quotedMessage: QuotedMessage = {
                 type: messageTypes.find(type => JSON.stringify(message.message).includes(type)) ?? "",
                 author: {
@@ -86,11 +94,9 @@ export async function parseMessage(message: WAMessage, bot: Bot) {
                     isBotOwner: false,
                     isGroupOwner: false
                 },
-                body: (() => {
-                    return unparsedQuotedMessage.message.conversation
-                        ?? (unparsedQuotedMessage.message.imageMessage
-                            ?? (unparsedQuotedMessage.message.videoMessage ?? ""))
-                })(),
+                body: unparsedQuotedMessage.message !== undefined ? unparsedQuotedMessage.message.conversation
+                    ?? (unparsedQuotedMessage.message.imageMessage
+                        ?? (unparsedQuotedMessage.message.videoMessage ?? "")) : "",
                 raw: unparsedQuotedMessage,
                 stanzaId: unparsedQuotedMessage.stanzaId
             }
@@ -99,7 +105,38 @@ export async function parseMessage(message: WAMessage, bot: Bot) {
     }
 
     const type = messageTypes.find(type => Object.keys(key).includes(type)) as keyof typeof parseBody;
-    if (!type) return;
-    parseBody[type]();
+    if (!type || !messageTypes.includes(type)) return;
+    const func = parseBody[type];
+    if (func != undefined) {
+        func()
+    }
+
+    if (!originJid.includes("@g.us")) {
+        return messageData;
+    }
+
+
+    const groupData = await bot.fetchGroupInfo(originJid);
+
+    const members = groupData?.participants ?? [];
+    const admins = groupData?.participants.filter((m) => m.admin === "admin" || m.admin === "superadmin") ?? [];
+
+    const group: Group = {
+        name: groupData!.subject,
+        admins: admins,
+        members: members,
+        groupId: originJid,
+        botIsAdmin: admins.map(x => x.id).includes(bot.botNumber!),
+        description: groupData?.desc,
+        locked: false,
+    };
+
+    messageData.author.jid = message.key.participant ?? "";
+
+    messageData.group = group;
+
+    console.log(messageData);
+
+    return messageData;
 
 }

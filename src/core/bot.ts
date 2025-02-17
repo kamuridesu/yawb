@@ -5,6 +5,7 @@ import { makeWASocket, DisconnectReason, WAMessage } from "@whiskeysockets/baile
 import NodeCache from "node-cache";
 import { BotConfig } from "../configs/botConfig.js";
 import { StateSQLiteDB } from "../storage/state.js";
+import { parseMessage } from './parsers.js';
 
 export class Bot {
     public name: string;
@@ -49,7 +50,8 @@ export class Bot {
         });
 
         this.sock.ev.on('connection.update', (update) => {
-            this.botNumber = state.creds.me?.id.replace(/:\d/, "");
+            this.botNumber = state.creds.me?.id.replace(/:\d+/, "");
+            console.log(this.botNumber);
             const { connection, lastDisconnect } = update
             if (connection === 'close') {
                 const shouldReconnect = (lastDisconnect?.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut
@@ -65,10 +67,15 @@ export class Bot {
         this.sock.ev.on("messages.upsert", async (handle: { messages: any, type: string }) => {
             console.log("======= received msg========")
             for (const message of handle.messages) {
-                console.log(message);
-                console.log(typeof message);
+                await parseMessage(message, this);
+                // console.log(message);
+                // console.log(typeof message);
             }
         });
+    }
+
+    async fetchGroupInfo(jid: string) {
+        return await this.sock?.groupMetadata(jid);
     }
 
 
