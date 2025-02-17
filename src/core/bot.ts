@@ -4,8 +4,8 @@ import P from 'pino';
 import { makeWASocket, DisconnectReason, WAMessage } from "@whiskeysockets/baileys";
 import NodeCache from "node-cache";
 import { BotConfig } from "../configs/botConfig.js";
-import { StateSQLiteDB } from "../storage/state.js";
 import { parseMessage } from './parsers.js';
+import { StateSQLiteDB } from 'src/storage/sqlitedb.js';
 
 export class Bot {
     public name: string;
