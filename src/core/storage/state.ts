@@ -106,9 +106,18 @@ export abstract class State {
                     }
                 }
             },
-            saveCreds: async () => { await this.write('creds', creds) },
-            clear: async () => { await this.purgeKeys() },
-            removeCreds: async () => { await this.purgeAll() },
+            saveCreds: async () => {
+                // console.log("============== SAVE ===============")
+                await this.write('creds', creds)
+            },
+            clear: async () => { 
+                // console.log("============== CLEAR ===============")
+                await this.purgeKeys() 
+            },
+            removeCreds: async () => {
+                // console.log("============== REMOVE ===============") 
+                await this.purgeAll() 
+            },
             query: async (table: string, id: string) => {
                 // console.log("============== QUERY ===============")
                 return await this.selectItemById(table, id);
