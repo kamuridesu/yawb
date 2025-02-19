@@ -40,9 +40,9 @@ export class Message {
         const command = raw[0].toLocaleLowerCase();
         const args = raw.slice(1);
 
-         if (command == "start") {
+        if (command == "start") {
             await message.reply("Hello World");
-         }
+        }
     }
 
     private async handleChat(message: ParsedMessage) {

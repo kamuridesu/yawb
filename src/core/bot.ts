@@ -4,7 +4,7 @@ import P from 'pino';
 import { makeWASocket, DisconnectReason, GroupMetadata } from "@whiskeysockets/baileys";
 import NodeCache from "node-cache";
 import { BotConfig } from "../configs/botConfig.js";
-import { ParsedMessage, parseMessage } from './parsers.js';
+import { Audio, Media, ParsedMessage, parseMessage } from './parsers.js';
 import { State } from 'src/core/storage/state.js';
 import { DatabaseFactory } from 'src/db/factory.js';
 import { Message } from './message.js';
@@ -86,10 +86,10 @@ export class Bot {
         return metadata;
     }
 
-    async sendTextMessage(jid: string, text: string, options?: any): Promise<ParsedMessage | undefined> {
+    async sendTextMessage(jid: string, text: string | Media, options?: any): Promise<ParsedMessage | undefined> {
         let sentMessage: ParsedMessage | undefined;
         try {
-            const parsedText = normalizeTextMentions(text);
+            const parsedText = normalizeTextMentions();
             if (options !== undefined && options.mentions) {
                 parsedText.mentions = parsedText.mentions.concat(options.mentions);
             }
@@ -101,7 +101,6 @@ export class Bot {
                 message.edit = options.edit;
                 delete options.edit;
             }
-
             await this.sock?.presenceSubscribe(jid);
             await this.sock?.sendPresenceUpdate("composing", jid);
             const response = await this.sock?.sendMessage(jid, message, options);

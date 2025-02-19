@@ -7,7 +7,7 @@ export async function isGroupAndMemberIsAdmin(message: ParsedMessage) {
         await message.reply("Este comando pode ser usado apenas em grupos!");
         return false;
     }
-
     return message!.author!.isAdmin;
-
 }
+
+

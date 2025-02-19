@@ -38,6 +38,25 @@ type QuotedMessage = {
     raw: string;
 }
 
+type Image = {
+    image: Buffer;
+    caption?: string;
+}
+
+type Video = {
+    video: Buffer;
+    caption?: string;
+    gifPlayback?: boolean;
+}
+
+export type Audio = {
+    audio: Buffer;
+    mimetype: string;
+}
+
+export type Media = Audio | Video | Image;
+
+
 export class ParsedMessage {
     id?: string | null;
     body?: string;
@@ -48,12 +67,20 @@ export class ParsedMessage {
     raw?: WAMessage;
     bot?: Bot;
 
-    async reply(text: string) {
-        await this.bot?.sendTextMessage(this.author!.chatJid, text, {quoted: this.raw});
+    async reply(text?: string, media?: Media) {
+        if (text) {
+            await this.bot?.sendTextMessage(this.author!.chatJid, text, {quoted: this.raw});
+        } else if (media) {
+            await this.bot?.sendTextMessage(this.author!.chatJid, media, {quoted: this.raw});
+        }
     }
 
     async react(emoji: string) {
+        await this.bot?.reactToMessage(this, emoji);
+    }
 
+    async edit(text: string) {
+        await this.bot?.sendTextMessage(this.author!.chatJid!, text, {edit: this.raw?.key});
     }
 }
 
@@ -112,7 +139,6 @@ class ParsedMessageBuilder {
         return this.parsedMessage;
     }
 }
-
 
 export async function parseMessage(message: WAMessage, bot: Bot) {
     if (message.message === undefined || message.message == null) {
