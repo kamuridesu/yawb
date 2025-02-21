@@ -24,12 +24,17 @@ export class Message {
                 ? rawMessage.message?.ephemeralMessage?.message
                 : rawMessage.message;
         const message = await parseMessage(rawMessage, this.bot);
+        const user = await this.bot.database.member?.getChatMember(message?.author?.chatJid!, message?.author?.jid!);
+        if (user?.silenced == 1) {
+            await message?.delete();
+            return;
+        }
         if (!message) return
         const chatInfo = await this.bot.database.chat?.getChat(message!.author!.chatJid!);
         if (message!.body!.startsWith(chatInfo!.prefix)) {
             return await this.handleCommand(message, chatInfo!);
         }
-        if ((!((chatInfo?.isBotEnabled ?? 0) == 1))) {
+        if (!((chatInfo?.isBotEnabled ?? 0) == 1)) {
             return;
         }
         return await this.handleChat(message);
@@ -40,8 +45,8 @@ export class Message {
         const raw = body.split(" ");
         const command = raw[0].toLocaleLowerCase();
         const args = raw.slice(1);
-        if ((!((chatInfo?.isBotEnabled ?? 0) == 1))) {
-            if (!["start", "stop"].includes(command)) {
+        if (!((chatInfo?.isBotEnabled ?? 0) == 1)) {
+            if (!["start"].includes(command)) {
                 return;
             }
         }

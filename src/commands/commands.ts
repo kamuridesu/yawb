@@ -10,4 +10,3 @@ export async function commandHandleProvisory(command: string, message: ParsedMes
     console.log(cmd);
     await cmd?.callable(message, args, bot);
 }
-

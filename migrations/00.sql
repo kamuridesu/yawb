@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS member (
     warns INTEGER DEFAULT 0,
     points INTEGER DEFAULT 0,
     messages INTEGER DEFAULT 0,
+    silenced INTEGER DEFAULT 0,
     FOREIGN KEY(chatId) REFERENCES chat(chatId)
 );
 

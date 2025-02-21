@@ -1,7 +1,7 @@
 import { Boom } from '@hapi/boom';
 import P from 'pino';
 
-import { makeWASocket, DisconnectReason,  ParticipantAction } from "@whiskeysockets/baileys";
+import { makeWASocket, DisconnectReason,  ParticipantAction, proto } from "@whiskeysockets/baileys";
 import { BotConfig } from "../configs/botConfig.js";
 import { parseMessage } from './message/parsers.js';
 import { State } from 'src/core/storage/state.js';
@@ -76,6 +76,10 @@ export class Bot {
 
     async updateGroupParticipants(chatJid: string, users: string[], action: ParticipantAction) {
         await this.sock?.groupParticipantsUpdate(chatJid, users, action);
+    }
+
+    async deleteMessage(jid: string, key: proto.IMessageKey) {
+        await this.sock?.sendMessage(jid, {delete: key});
     }
 
     async sendTextMessage(jid: string, msg: string | Media, options?: any): Promise<ParsedMessage | undefined> {

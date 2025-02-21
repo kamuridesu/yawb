@@ -9,6 +9,7 @@ export type Member = {
     chatId: string;
     warns: number;
     points: number;
+    silenced: number;
     messages: number;
 }
 

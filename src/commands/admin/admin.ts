@@ -1,6 +1,6 @@
 import { Command } from "../../configs/commands.js";
 import { startBot, stopBot } from "./bot.js";
-import { demote, mentionUsers, pointsManager, promote, setPrefix, warn } from "./chat.js";
+import { demote, listMessages, mentionUsers, pointsManager, promote, setPrefix, silenceUser, warn } from "./chat.js";
 
 export const AdminCommands: Command[] = [
     {
@@ -68,6 +68,43 @@ export const AdminCommands: Command[] = [
             "$prefix$points listar: lista os pontos dos membros do grupo",
             "$prefix$points remover @user1 @user2 50: remove 50 pontos de membros do grupo",
             "$prefix$points @user1 @user2 50: adiciona 50 pontos de membros do grupo",
+        ],
+        category: "admin"
+    },
+    {
+        name: "mensagens",
+        aliases: ["msg", "messages"],
+        callable: listMessages,
+        description: "Gerencia e lista mensagens dos membros do grupo.",
+        examples: [
+            "$prefix$mensagens: lista as mensagens do grupo",
+            "$prefix$mensagens remover 5: remove os membros com menos de 5 mensagens",
+            "$prefix$mensagens 5: lista membros com menos de 5 mensagens"
+        ],
+        category: "admin"
+    },
+    {
+        name: "mute",
+        aliases: ["mutar", "silenciar"],
+        callable: async (message, _, bot) => {
+            await silenceUser(message, "mute", bot)
+        },
+        description: "Silencia membros do grupo.",
+        examples: [
+            "$prefix$mute @user: Muta @user no grupo",
+        ],
+        category: "admin"
+    }
+    ,
+    {
+        name: "unmute",
+        aliases: ["desmutar"],
+        callable: async (message, _, bot) => {
+            await silenceUser(message, "unmute", bot)
+        },
+        description: "Desmuta membros do grupo.",
+        examples: [
+            "$prefix$unmute @user: Desmuta @user no grupo",
         ],
         category: "admin"
     }

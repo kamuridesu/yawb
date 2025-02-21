@@ -174,3 +174,67 @@ export async function pointsManager(message: ParsedMessage, args: string[], bot:
     }
     return await pointsAddSub(message, args.filter(s => s != "add"), bot, "add");
 }
+
+export async function banUsersBellowMessageThreshold(message: ParsedMessage, args: string[], bot: Bot) {
+    if (!(await isGroupAndMemberIsAdmin(message))) return;
+    if (!(await message.group?.isBotAdmin())) {
+        return await sendReactionMessage(message, Emojis.fail, `${bot.name} não é admin.`);
+    }
+    if (args.length < 1) {
+        return await sendReactionMessage(message, Emojis.fail, "Preciso do número de mensagens minimas");
+    }
+    const valueStr = args.filter(x => !x.includes("@")).join(" ").trim();
+    if (!valueStr.match(/^\d+$/)) return await sendReactionMessage(message, Emojis.fail, "Número de mensagens inválido.");
+    const value = parseInt(valueStr);
+    const usersBellowThreshold = (await bot.database.member!.getAllChatMembers(message.author?.chatJid!))
+        .filter(u => u.messages < value)
+        .map(u => u.id);
+    if (usersBellowThreshold.length < 1) {
+        return await sendReactionMessage(message, Emojis.success, `Nenhum usuário com mensagens menor que ${value} encontrado.`);
+    }
+    await bot.updateGroupParticipants(message.author?.chatJid!, usersBellowThreshold, "remove");
+    await Promise.all(usersBellowThreshold
+        .map(async u =>
+            await bot.database.member?.deleteMemberFromChat(message.author?.chatJid!, u)));
+    return await sendReactionMessage(message, Emojis.success, "Usuários removidos: \n" + usersBellowThreshold.join("\n-"));
+}
+
+export async function listMessages(message: ParsedMessage, args: string[], bot: Bot) {
+    if (args.includes("remover")) {
+        return await banUsersBellowMessageThreshold(message, args.filter(s => s != "remover"), bot);
+    }
+    const users = await bot.database.member!.getAllChatMembers(message.author?.chatJid!);
+    const valueStr = args.filter(x => !x.includes("@")).join(" ").trim();
+    let text = "Messagens por usuários:\n"
+    if (!valueStr.match(/^\d+$/)) {
+        text += users.map(u => `${u.id}: ${u.messages}`).join("\n- ");
+    } else {
+        const value = parseInt(valueStr);
+        text += users.filter(u => u.messages < value).map(u => `${u.id}: ${u.messages}`).join("\n- ");
+    }
+    return await sendReactionMessage(message, Emojis.success, text);
+}
+
+export async function silenceUser(message: ParsedMessage, args: "mute" | "unmute", bot: Bot) {
+    if (!(await isGroupAndMemberIsAdmin(message))) return;
+    if (!(await message.group?.isBotAdmin())) {
+        return await sendReactionMessage(message, Emojis.fail, `${bot.name} não é admin.`);
+    }
+    if ((message.mentions ?? []).length < 1 && !message.quotedMessage) {
+        return await sendReactionMessage(message, Emojis.fail, "Nenhum usuário mencionado.");
+    }
+    const mentionedUsers = [...(message.mentions ?? []), message.quotedMessage?.author.jid].filter(Boolean);
+    const users = (await Promise
+        .all(mentionedUsers
+            .filter(u => u !== undefined)
+            .map(u => bot.database.member?.getChatMember(message.author?.chatJid!, u))))
+        .filter(u => u !== undefined);
+    const text = `Usuários ${args == "mute" ? "mutados" : "desmutados"}: \n` + 
+        (await Promise.all(users.map(async u => {
+            console.log("Muting " + u.id);
+            u.silenced = args == "mute" ? 1 : 0;
+            await bot.database.member?.updateChatMember(u);
+            return u.id;
+        }))).join("\n- ");
+    return await sendReactionMessage(message, Emojis.success, text);
+}

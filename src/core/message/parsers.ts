@@ -1,6 +1,6 @@
-import { GroupParticipant, WAMessage } from "@whiskeysockets/baileys";
+import { WAMessage } from "@whiskeysockets/baileys";
 import { Bot } from "../bot.js";
-import { Author, AuthorBuilder, Group, messageTypes, ParsedMessageBuilder, QuotedMessage } from "./types.js";
+import { AuthorBuilder, Group, messageTypes, ParsedMessageBuilder, QuotedMessage } from "./types.js";
 
 export async function parseMessage(message: WAMessage, bot: Bot) {
     if (message.message === undefined || message.message == null) {

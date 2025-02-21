@@ -29,7 +29,7 @@ export class SQLiteChatDB extends ChatDatabase {
     async getChat(jid: string): Promise<Chat> {
         const result = await this.cp?.db?.get(`SELECT * FROM chat WHERE chatId = ?`, [jid]);
         if (!result) {
-            this.newChat(jid);
+            await this.newChat(jid);
             return { chatId: jid, isBotEnabled: 1, prefix: "!" };
         };
         return result as Chat;
@@ -70,17 +70,18 @@ export class SQLiteMemberDB extends MemberDatabase {
             id
         ]);
         if (result === undefined) {
-            this.addMemberToChat(chatJid, id);
-            return { chatId: chatJid, id: id, messages: 0, points: 0, warns: 0 };
+            await this.addMemberToChat(chatJid, id);
+            return { chatId: chatJid, id: id, messages: 0, points: 0, silenced: 0, warns: 0 };
         };
         return result as Member;
     }
 
     async updateChatMember(member: Member): Promise<void> {
-        await this.cp?.db?.run(`UPDATE member SET warns = ?, points = ?, messages = ? WHERE chatId = ? AND id = ?`, [
+        await this.cp?.db?.run(`UPDATE member SET warns = ?, points = ?, messages = ?, silenced = ? WHERE chatId = ? AND id = ?`, [
             member.warns,
             member.points,
             member.messages,
+            member.silenced,
             member.chatId,
             member.id
         ]);

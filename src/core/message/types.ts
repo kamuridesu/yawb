@@ -197,6 +197,10 @@ export class ParsedMessage {
     async edit(text: string) {
         await this.bot?.sendTextMessage(this.author!.chatJid!, text, {edit: this.raw?.key});
     }
+
+    async delete() {
+        await this.bot?.deleteMessage(this.author?.chatJid!, this.raw!.key);
+    }
 }
 
 export class ParsedMessageBuilder {
