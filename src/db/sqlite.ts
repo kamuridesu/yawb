@@ -30,7 +30,7 @@ export class SQLiteChatDB extends ChatDatabase {
         const result = await this.cp?.db?.get(`SELECT * FROM chat WHERE chatId = ?`, [jid]);
         if (!result) {
             this.newChat(jid);
-            return { chatId: jid, isBotEnabled: true, prefix: "!" };
+            return { chatId: jid, isBotEnabled: 1, prefix: "!" };
         };
         return result as Chat;
     }
@@ -39,19 +39,10 @@ export class SQLiteChatDB extends ChatDatabase {
         await this.cp?.db?.run(`INSERT INTO chat (chatId) VALUES (?)`, [jid]);
     }
 
-    async botSwitch(jid: string): Promise<void> {
-        let chatInfo = await this.getChat(jid);
-        if (!chatInfo) {
-            this.newChat(jid);
-            chatInfo = { chatId: jid, isBotEnabled: false, prefix: "!" }
-        }
-        await this.cp?.db?.run(`UPDATE chat SET isBotEnabled = ? WHERE chatId = ?`,
-            [chatInfo.isBotEnabled ? 1 : 0, jid]
+    async updateChat(chat: Chat) {
+        await this.cp?.db?.run(`UPDATE chat SET isBotEnabled = ?, prefix = ? WHERE chatId = ?`, 
+            [chat.isBotEnabled, chat.prefix, chat.chatId]
         );
-    }
-
-    async changePrefix(jid: string, newPrefix: string): Promise<void> {
-        await this.cp?.db?.run(`UPDATE chat SET prefix = ? WHERE chatId = ?`, [newPrefix, jid])
     }
 
 }
@@ -86,10 +77,12 @@ export class SQLiteMemberDB extends MemberDatabase {
     }
 
     async updateChatMember(member: Member): Promise<void> {
-        await this.cp?.db?.run(`UPDATE member SET warns = ?, points = ?, messages = ?`, [
+        await this.cp?.db?.run(`UPDATE member SET warns = ?, points = ?, messages = ? WHERE chatId = ? AND id = ?`, [
             member.warns,
             member.points,
-            member.messages
+            member.messages,
+            member.chatId,
+            member.id
         ]);
     }
 }

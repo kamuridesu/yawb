@@ -1,16 +1,11 @@
+import { ParsedMessage } from "src/core/message/types.js";
 import { Bot } from "../core/bot.js";
-import { ParsedMessage } from "../core/parsers.js";
 
 export type Command = {
     callable: (message: ParsedMessage, args: string[], bot: Bot) => Promise<void>,
-    category: string;
     name: string;
+    category: string;
     description: string;
     examples: string[];
-    aliases: string[];
+    aliases?: string[];
 };
-
-export type Category = {
-    name: string;
-    commands: Command[];
-}

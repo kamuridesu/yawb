@@ -1,14 +1,14 @@
 import { Boom } from '@hapi/boom';
 import P from 'pino';
 
-import { makeWASocket, DisconnectReason, GroupMetadata } from "@whiskeysockets/baileys";
-import NodeCache from "node-cache";
+import { makeWASocket, DisconnectReason,  ParticipantAction } from "@whiskeysockets/baileys";
 import { BotConfig } from "../configs/botConfig.js";
-import { Audio, Media, ParsedMessage, parseMessage } from './parsers.js';
+import { parseMessage } from './message/parsers.js';
 import { State } from 'src/core/storage/state.js';
 import { DatabaseFactory } from 'src/db/factory.js';
-import { Message } from './message.js';
+import { Message } from './message/message.js';
 import { normalizeTextMentions } from '../helpers/text.js';
+import { Media, ParsedMessage } from './message/types.js';
 
 export class Bot {
     public name: string;
@@ -19,7 +19,6 @@ export class Bot {
     private sock?: ReturnType<typeof makeWASocket>;
     private stateDB: State;
     private handlers = new Message(this);
-    private groupCache = new NodeCache({ stdTTL: 5 * 60, useClones: false });
 
     constructor(config: BotConfig) {
         this.name = config.name;
@@ -33,27 +32,14 @@ export class Bot {
 
         this.sock = makeWASocket({
             printQRInTerminal: true,
-            cachedGroupMetadata: async (jid) => this.groupCache.get(jid),
             auth: {
                 creds: state.creds,
                 keys: state.keys
-            }
+            },
+            syncFullHistory: false
         });
 
         this.sock.ev.on("connection.update", saveCreds);
-
-        this.sock.ev.on("groups.update", async ([ev]) => {
-            if (ev?.id == undefined) {
-                return;
-            }
-            const metadata = await this.sock?.groupMetadata(ev.id);
-            this.groupCache.set(ev.id, metadata);
-        });
-
-        this.sock.ev.on('group-participants.update', async (ev) => {
-            const metadata = await this.sock?.groupMetadata(ev.id);
-            this.groupCache.set(ev.id, metadata);
-        });
 
         this.sock.ev.on('connection.update', (update) => {
             this.botNumber = state.creds.me?.id.replace(/:\d+/, "");
@@ -78,32 +64,44 @@ export class Bot {
     }
 
     async fetchGroupInfo(jid: string) {
-        let metadata: GroupMetadata | undefined = this.groupCache.get(jid) as GroupMetadata;
-        if (metadata === undefined) {
-            metadata = await this.sock?.groupMetadata(jid);
-            this.groupCache.set(jid, metadata);
-        }
-        return metadata;
+        return await this.sock?.groupMetadata(jid);
     }
 
-    async sendTextMessage(jid: string, text: string | Media, options?: any): Promise<ParsedMessage | undefined> {
+    async fetchAllGroups() {
+        const groups = await this.sock?.groupFetchAllParticipating();
+        if (groups) {
+            return Object.entries(groups).slice(0).map(entry => entry[1]);
+        }
+    }
+
+    async updateGroupParticipants(chatJid: string, users: string[], action: ParticipantAction) {
+        await this.sock?.groupParticipantsUpdate(chatJid, users, action);
+    }
+
+    async sendTextMessage(jid: string, msg: string | Media, options?: any): Promise<ParsedMessage | undefined> {
         let sentMessage: ParsedMessage | undefined;
+        let message: { ["text"]: string, ["mentions"]: string[], ["edit"]?: any } | Media | undefined;
         try {
-            const parsedText = normalizeTextMentions();
-            if (options !== undefined && options.mentions) {
-                parsedText.mentions = parsedText.mentions.concat(options.mentions);
+            if (typeof msg == "string") {
+                const parsedText = normalizeTextMentions(msg);
+                if (options !== undefined && options.mentions) {
+                    parsedText.mentions = parsedText.mentions.concat(options.mentions);
+                }
+                message = {
+                    text: parsedText.text,
+                    mentions: parsedText.mentions
+                }
+                if (options?.edit !== undefined) {
+                    message.edit = options.edit;
+                    delete options.edit;
+                }
+            } else {
+                message = msg;
             }
-            const message: { ["text"]: string, ["mentions"]: string[], ["edit"]?: any } = {
-                text: parsedText.text,
-                mentions: parsedText.mentions
-            }
-            if (options?.edit !== undefined) {
-                message.edit = options.edit;
-                delete options.edit;
-            }
+            
             await this.sock?.presenceSubscribe(jid);
             await this.sock?.sendPresenceUpdate("composing", jid);
-            const response = await this.sock?.sendMessage(jid, message, options);
+            const response = await this.sock?.sendMessage(jid, message!, options);
             if (response) {
                 sentMessage = await parseMessage(response, this);
             }
@@ -118,7 +116,7 @@ export class Bot {
     async reactToMessage(message: ParsedMessage, emoji: string): Promise<ParsedMessage | undefined> {
         let sentMessage: ParsedMessage | undefined;
         try {
-            await this.sock?.sendMessage(message!.author!.chatJid, { react: { text: emoji, key: message!.raw!.key } });
+            await this.sock?.sendMessage(message!.author!.chatJid!, { react: { text: emoji, key: message!.raw!.key } });
         } catch (e) {
             console.error(e);
         } finally {

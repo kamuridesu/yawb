@@ -1,6 +1,6 @@
 export type Chat = {
     chatId: string;
-    isBotEnabled: boolean;
+    isBotEnabled: number;
     prefix: string;
 }
 

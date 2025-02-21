@@ -1,6 +1,8 @@
 import { WAMessage } from "@whiskeysockets/baileys";
-import { Bot } from "./bot.js";
-import { ParsedMessage, parseMessage } from "./parsers.js";
+import { Bot } from "../bot.js";
+import { parseMessage } from "./parsers.js";
+import { commandHandleProvisory } from "../../commands/commands.js";
+import { ParsedMessage } from "./types.js";
 
 export class Message {
     bot: Bot;
@@ -22,12 +24,10 @@ export class Message {
                 : rawMessage.message;
         const message = await parseMessage(rawMessage, this.bot);
         if (!message) return
-        const chatInfo = await this.bot.database.chat?.getChat(message!.author!.chatJid);
+        const chatInfo = await this.bot.database.chat?.getChat(message!.author!.chatJid!);
         if (!chatInfo?.isBotEnabled) {
             return;
         }
-        console.log(message!.author!.name);
-        console.log(chatInfo);
         if (message!.body!.startsWith(chatInfo.prefix)) {
             return await this.handleCommand(message);
         }
@@ -40,13 +40,11 @@ export class Message {
         const command = raw[0].toLocaleLowerCase();
         const args = raw.slice(1);
 
-        if (command == "start") {
-            await message.reply("Hello World");
-        }
+        await commandHandleProvisory(command, message, args, this.bot);
     }
 
     private async handleChat(message: ParsedMessage) {
-        const member = await this.bot.database.member?.getChatMember(message!.author!.chatJid, message!.author!.jid);
+        const member = await this.bot.database.member?.getChatMember(message!.author!.chatJid!, message!.author!.jid!);
         if (member == undefined) {
             throw new Error("Database not ready");
         }

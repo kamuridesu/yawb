@@ -35,8 +35,7 @@ export abstract class ChatDatabase extends Database {
     abstract newChat(jid: string): Promise<void>;
     abstract getChat(jid: string): Promise<Chat>;
     abstract deleteChat(jid: string): Promise<void>;
-    abstract botSwitch(jid: string): Promise<void>;
-    abstract changePrefix(jid: string, newPrefix: string): Promise<void>;
+    abstract updateChat(chat: Chat): Promise<void>;
 }
 
 export abstract class MemberDatabase extends Database {
