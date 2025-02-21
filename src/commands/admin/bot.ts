@@ -2,10 +2,10 @@ import { Emojis } from "../../common/emojis.js";
 import { Bot } from "../../core/bot.js";
 import { ParsedMessage } from "../../core/message/types.js";
 import { sendReactionMessage } from "../helpers.js";
-import { isGroupAndMemberIsAdmin } from "./guards.js";
+import { isGroupAndAdmin } from "./guards.js";
 
 export async function stopBot(message: ParsedMessage, _: string[], bot: Bot) {
-    if (!(await isGroupAndMemberIsAdmin(message))) return;
+    if (!(await isGroupAndAdmin(message))) return;
     const chatInfo = await bot.database.chat?.getChat(message.author!.chatJid!);
     if (chatInfo) {
         if (chatInfo.isBotEnabled == 1) {
@@ -17,7 +17,7 @@ export async function stopBot(message: ParsedMessage, _: string[], bot: Bot) {
 }
 
 export async function startBot(message: ParsedMessage, _: string[], bot: Bot) {
-    if (!(await isGroupAndMemberIsAdmin(message))) return;
+    if (!(await isGroupAndAdmin(message))) return;
     const chatInfo = await bot.database.chat?.getChat(message.author!.chatJid!);
     if (chatInfo) {
         if (chatInfo.isBotEnabled == 0) {

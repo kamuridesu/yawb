@@ -50,7 +50,7 @@ export class StateSQLiteDB extends State {
              id VARCHAR(255) PRIMARY KEY,
              value TEXT,
              session VARCHAR(255),
-             timestamp TIMESTAMP DEFAIULT CURRENT_TIMESTAMP
+             timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );`);
         this.allTables.push(tableName);
     }

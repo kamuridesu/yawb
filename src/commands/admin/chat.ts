@@ -2,10 +2,10 @@ import { Emojis } from "../../common/emojis.js";
 import { Bot } from "../../core/bot.js";
 import { ParsedMessage } from "../../core/message/types.js";
 import { sendReactionMessage } from "../helpers.js";
-import { isGroupAndMemberIsAdmin } from "./guards.js";
+import { isGroupAndAdmin } from "./guards.js";
 
 export async function banUser(message: ParsedMessage, _: string[], bot: Bot) {
-    if (!(await isGroupAndMemberIsAdmin(message))) return;
+    if (!(await isGroupAndAdmin(message))) return;
     if (!(await message.group?.isBotAdmin())) return await sendReactionMessage(message, Emojis.fail, `${bot.name} não é admin.`);
     if (message.mentions!.length < 1 && !message.quotedMessage) {
         return await sendReactionMessage(message, Emojis.fail, "Preciso que algum usuario seja mencionado.");
@@ -15,7 +15,7 @@ export async function banUser(message: ParsedMessage, _: string[], bot: Bot) {
 }
 
 async function warnManager(message: ParsedMessage, bot: Bot, removeWarn = false) {
-    if (!(await isGroupAndMemberIsAdmin(message))) return;
+    if (!(await isGroupAndAdmin(message))) return;
     if ((message.mentions ?? []).length < 1 && !message.quotedMessage) {
         return await sendReactionMessage(message, Emojis.fail, "Preciso que algum usuario seja mencionado.");
     }
@@ -70,7 +70,7 @@ export async function warn(message: ParsedMessage, args: string[], bot: Bot) {
 }
 
 export async function mentionUsers(message: ParsedMessage, args: string[], _: Bot) {
-    if (!(await isGroupAndMemberIsAdmin(message))) return;
+    if (!(await isGroupAndAdmin(message))) return;
     if (args.length <= 0 && message.quotedMessage == undefined) {
         return await sendReactionMessage(message, Emojis.fail, "Nenhuma mensagem enviada.");
     }
@@ -87,7 +87,7 @@ export async function mentionUsers(message: ParsedMessage, args: string[], _: Bo
 }
 
 export async function updateUserRole(message: ParsedMessage, bot: Bot, action: "promote" | "demote") {
-    if (!(await isGroupAndMemberIsAdmin(message))) return;
+    if (!(await isGroupAndAdmin(message))) return;
     if (!(await message.group?.isBotAdmin())) {
         return await sendReactionMessage(message, Emojis.fail, `${bot.name} não é admin`);
     }
@@ -119,7 +119,7 @@ export async function demote(message: ParsedMessage, _: string[], bot: Bot) {
 }
 
 export async function setPrefix(message: ParsedMessage, args: string[], bot: Bot) {
-    if (!(await isGroupAndMemberIsAdmin(message))) return;
+    if (!(await isGroupAndAdmin(message))) return;
 
     const newPrefix = args.join(" ").trim();
     console.log(`Prefix: ${newPrefix}`);
@@ -134,7 +134,7 @@ export async function setPrefix(message: ParsedMessage, args: string[], bot: Bot
 }
 
 export async function pointsAddSub(message: ParsedMessage, args: string[], bot: Bot, action: "add" | "remove") {
-    if (!(await isGroupAndMemberIsAdmin(message))) return;
+    if (!(await isGroupAndAdmin(message))) return;
     if (args.length < 1) {
         return await sendReactionMessage(message, Emojis.fail, "Faltando número de pontos.");
     }
@@ -175,8 +175,8 @@ export async function pointsManager(message: ParsedMessage, args: string[], bot:
     return await pointsAddSub(message, args.filter(s => s != "add"), bot, "add");
 }
 
-export async function banUsersBellowMessageThreshold(message: ParsedMessage, args: string[], bot: Bot) {
-    if (!(await isGroupAndMemberIsAdmin(message))) return;
+export async function banUsersBelowMessageThreshold(message: ParsedMessage, args: string[], bot: Bot) {
+    if (!(await isGroupAndAdmin(message))) return;
     if (!(await message.group?.isBotAdmin())) {
         return await sendReactionMessage(message, Emojis.fail, `${bot.name} não é admin.`);
     }
@@ -186,22 +186,22 @@ export async function banUsersBellowMessageThreshold(message: ParsedMessage, arg
     const valueStr = args.filter(x => !x.includes("@")).join(" ").trim();
     if (!valueStr.match(/^\d+$/)) return await sendReactionMessage(message, Emojis.fail, "Número de mensagens inválido.");
     const value = parseInt(valueStr);
-    const usersBellowThreshold = (await bot.database.member!.getAllChatMembers(message.author?.chatJid!))
+    const usersBelowThreshold = (await bot.database.member!.getAllChatMembers(message.author?.chatJid!))
         .filter(u => u.messages < value)
         .map(u => u.id);
-    if (usersBellowThreshold.length < 1) {
+    if (usersBelowThreshold.length < 1) {
         return await sendReactionMessage(message, Emojis.success, `Nenhum usuário com mensagens menor que ${value} encontrado.`);
     }
-    await bot.updateGroupParticipants(message.author?.chatJid!, usersBellowThreshold, "remove");
-    await Promise.all(usersBellowThreshold
+    await bot.updateGroupParticipants(message.author?.chatJid!, usersBelowThreshold, "remove");
+    await Promise.all(usersBelowThreshold
         .map(async u =>
             await bot.database.member?.deleteMemberFromChat(message.author?.chatJid!, u)));
-    return await sendReactionMessage(message, Emojis.success, "Usuários removidos: \n" + usersBellowThreshold.join("\n-"));
+    return await sendReactionMessage(message, Emojis.success, "Usuários removidos: \n" + usersBelowThreshold.join("\n-"));
 }
 
 export async function listMessages(message: ParsedMessage, args: string[], bot: Bot) {
     if (args.includes("remover")) {
-        return await banUsersBellowMessageThreshold(message, args.filter(s => s != "remover"), bot);
+        return await banUsersBelowMessageThreshold(message, args.filter(s => s != "remover"), bot);
     }
     const users = await bot.database.member!.getAllChatMembers(message.author?.chatJid!);
     const valueStr = args.filter(x => !x.includes("@")).join(" ").trim();
@@ -216,7 +216,7 @@ export async function listMessages(message: ParsedMessage, args: string[], bot: 
 }
 
 export async function silenceUser(message: ParsedMessage, args: "mute" | "unmute", bot: Bot) {
-    if (!(await isGroupAndMemberIsAdmin(message))) return;
+    if (!(await isGroupAndAdmin(message))) return;
     if (!(await message.group?.isBotAdmin())) {
         return await sendReactionMessage(message, Emojis.fail, `${bot.name} não é admin.`);
     }
