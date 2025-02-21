@@ -1,6 +1,6 @@
 import { Command } from "../../configs/commands.js";
 import { startBot, stopBot } from "./bot.js";
-import { demote, listMessages, mentionUsers, pointsManager, promote, setPrefix, silenceUser, warn } from "./chat.js";
+import { demote, listMessages, mentionUsers, pointsManager, promote, reset, setPrefix, silenceUser, warn } from "./chat.js";
 
 export const AdminCommands: Command[] = [
     {
@@ -94,8 +94,7 @@ export const AdminCommands: Command[] = [
             "$prefix$mute @user: Muta @user no grupo",
         ],
         category: "admin"
-    }
-    ,
+    },
     {
         name: "unmute",
         aliases: ["desmutar"],
@@ -105,6 +104,17 @@ export const AdminCommands: Command[] = [
         description: "Desmuta membros do grupo.",
         examples: [
             "$prefix$unmute @user: Desmuta @user no grupo",
+        ],
+        category: "admin"
+    },
+    {
+        name: "reset",
+        aliases: ["resetar"],
+        callable: reset,
+        description: "Reseta mensagens ou pontos no grupo.",
+        examples: [
+            "$prefix$reset mensagens: Reseta as mensagens do grupo",
+            "$prefix$reset pontos: Reseta os pontos",
         ],
         category: "admin"
     }

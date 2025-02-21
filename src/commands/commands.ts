@@ -1,8 +1,9 @@
 import { AdminCommands } from "./admin/admin.js";
 import { Bot } from "../core/bot.js";
 import { ParsedMessage } from "../core/message/types.js";
+import { GameCommands } from "./games/game.js";
 
-const AllCommands = [...AdminCommands];
+const AllCommands = [...AdminCommands, ...GameCommands];
 
 export async function commandHandleProvisory(command: string, message: ParsedMessage, args: string[], bot: Bot) {
     console.log("Received command: " + command);

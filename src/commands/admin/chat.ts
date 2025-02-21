@@ -158,7 +158,7 @@ export async function pointsAddSub(message: ParsedMessage, args: string[], bot: 
 }
 
 export async function listPoints(message: ParsedMessage, bot: Bot) {
-    const members = await bot.database.member!.getAllChatMembers(message.author?.chatJid!);
+    const members = (await bot.database.member!.getAllChatMembers(message.author?.chatJid!)).filter(u => u.id != "");
     const text = "Pontuação atual: \n" + members.filter(s => s.points != 0)
         .map(u => `- ${u.id}: ${u.points}`)
         .join("\n");
@@ -203,9 +203,9 @@ export async function listMessages(message: ParsedMessage, args: string[], bot: 
     if (args.includes("remover")) {
         return await banUsersBelowMessageThreshold(message, args.filter(s => s != "remover"), bot);
     }
-    const users = await bot.database.member!.getAllChatMembers(message.author?.chatJid!);
+    const users = (await bot.database.member!.getAllChatMembers(message.author?.chatJid!)).filter(u => u.id !== "");
     const valueStr = args.filter(x => !x.includes("@")).join(" ").trim();
-    let text = "Messagens por usuários:\n"
+    let text = "Messagens por usuários:\n- "
     if (!valueStr.match(/^\d+$/)) {
         text += users.map(u => `${u.id}: ${u.messages}`).join("\n- ");
     } else {
@@ -237,4 +237,21 @@ export async function silenceUser(message: ParsedMessage, args: "mute" | "unmute
             return u.id;
         }))).join("\n- ");
     return await sendReactionMessage(message, Emojis.success, text);
+}
+
+export async function reset(message: ParsedMessage, args: string[], bot: Bot) {
+    const users = await bot.database.member?.getAllChatMembers(message.author?.chatJid!) ?? [];
+    if (!(args.includes("mensagens") || args.includes("msg")) && (!args.includes("points") || args.includes("pontos"))) {
+        return await sendReactionMessage(message,
+            Emojis.fail,
+            "Verbo não reconhecido. Verbos suportados: `mensagens`, `msg`, `points`, `pontos`"
+        );
+    }
+    await Promise.all(users.map(async u => {
+        args.includes("mensagens") || args.includes("msg")
+            ? u.messages = 0
+            : u.points = 0;
+        await bot.database.member?.updateChatMember(u);
+    }));
+    return await message.react(Emojis.success);
 }
