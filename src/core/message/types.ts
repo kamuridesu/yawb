@@ -53,6 +53,11 @@ export class AuthorBuilder {
         return this;
     }
 
+    setGroup(group: Group) {
+        this.author.group = group;
+        return this;
+    }
+
     build() {
         return this.author;
     }
@@ -175,11 +180,13 @@ export class ParsedMessage {
     raw?: WAMessage;
     bot?: Bot;
 
-    async reply(text: string): Promise<void>;
-    async reply(media: Media): Promise<void>;
-    async reply(textOrMedia: string | Media): Promise<void> {
+    async reply(text: string, options?: any): Promise<void>;
+    async reply(media: Media, options?: any): Promise<void>;
+    async reply(textOrMedia: string | Media, options?: any): Promise<void> {
+        const opts = options ?? {}
+        opts.quoted = this.raw;
         if (textOrMedia) {
-            await this.bot?.sendTextMessage(this.author!.chatJid!, textOrMedia, {quoted: this.raw});
+            await this.bot?.sendTextMessage(this.author!.chatJid!, textOrMedia, opts);
         }
     }
 

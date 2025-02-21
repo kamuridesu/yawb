@@ -7,7 +7,7 @@ export async function isGroupAndMemberIsAdmin(message: ParsedMessage) {
         await sendReactionMessage(message, Emojis.fail, "Este comando pode ser usado apenas em grupos!");
         return false;
     }
-    if (!message!.author!.isAdmin) {
+    if (!(await message!.author!.isAdmin())) {
         await sendReactionMessage(message, Emojis.fail, "Este comando pode ser usado apenas por admins!");
         return false;
     }

@@ -3,6 +3,7 @@ import { Bot } from "../bot.js";
 import { parseMessage } from "./parsers.js";
 import { commandHandleProvisory } from "../../commands/commands.js";
 import { ParsedMessage } from "./types.js";
+import { Chat } from "src/db/types.js";
 
 export class Message {
     bot: Bot;
@@ -25,21 +26,25 @@ export class Message {
         const message = await parseMessage(rawMessage, this.bot);
         if (!message) return
         const chatInfo = await this.bot.database.chat?.getChat(message!.author!.chatJid!);
-        if (!chatInfo?.isBotEnabled) {
-            return;
+        if (message!.body!.startsWith(chatInfo!.prefix)) {
+            return await this.handleCommand(message, chatInfo!);
         }
-        if (message!.body!.startsWith(chatInfo.prefix)) {
-            return await this.handleCommand(message);
+        if ((!((chatInfo?.isBotEnabled ?? 0) == 1))) {
+            return;
         }
         return await this.handleChat(message);
     }
 
-    private async handleCommand(message: ParsedMessage) {
+    private async handleCommand(message: ParsedMessage, chatInfo: Chat) {
         const body = message!.body!.substring(1);
         const raw = body.split(" ");
         const command = raw[0].toLocaleLowerCase();
         const args = raw.slice(1);
-
+        if ((!((chatInfo?.isBotEnabled ?? 0) == 1))) {
+            if (!["start", "stop"].includes(command)) {
+                return;
+            }
+        }
         await commandHandleProvisory(command, message, args, this.bot);
     }
 

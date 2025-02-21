@@ -1,4 +1,4 @@
-function normalizeMentions(text: string): string[] {
+function filterMentions(text: string): string[] {
 	const regex = /@[0-9]{11,13}/g;
 	const matches = text.match(regex);
 	if (matches) {
@@ -14,6 +14,6 @@ export function normalizeTextMentions(text: string): { text: string; mentions: s
 	}
 	return {
 		text: text,
-		mentions: normalizeMentions(text),
+		mentions: filterMentions(text),
 	};
 }

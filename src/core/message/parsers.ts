@@ -64,11 +64,13 @@ export async function parseMessage(message: WAMessage, bot: Bot) {
         return parsedMessageBuilder.setAuthor(authorBuilder.build()).build();
     }
 
-    authorBuilder.setJid(message.key.participant ?? "");
+    const group = new Group(bot, originJid);
+    authorBuilder.setJid(message.key.participant ?? "")
+        .setGroup(group);
     const author = authorBuilder.build();
     parsedMessageBuilder
         .setAuthor(author)
-        .setGroup(new Group(bot, author.chatJid!));
+        .setGroup(group);
 
     return parsedMessageBuilder.build();
 }

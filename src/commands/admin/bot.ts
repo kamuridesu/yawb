@@ -4,7 +4,7 @@ import { ParsedMessage } from "../../core/message/types.js";
 import { sendReactionMessage } from "../helpers.js";
 import { isGroupAndMemberIsAdmin } from "./guards.js";
 
-export async function startBot(message: ParsedMessage, _: string[], bot: Bot) {
+export async function stopBot(message: ParsedMessage, _: string[], bot: Bot) {
     if (!(await isGroupAndMemberIsAdmin(message))) return;
     const chatInfo = await bot.database.chat?.getChat(message.author!.chatJid!);
     if (chatInfo) {
@@ -16,7 +16,7 @@ export async function startBot(message: ParsedMessage, _: string[], bot: Bot) {
     }
 }
 
-export async function stopBot(message: ParsedMessage, _: string[], bot: Bot) {
+export async function startBot(message: ParsedMessage, _: string[], bot: Bot) {
     if (!(await isGroupAndMemberIsAdmin(message))) return;
     const chatInfo = await bot.database.chat?.getChat(message.author!.chatJid!);
     if (chatInfo) {
