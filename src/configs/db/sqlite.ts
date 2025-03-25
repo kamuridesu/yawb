@@ -5,7 +5,7 @@ import { Chat, Filter, Member } from "./types.js";
 const { Database: Sqlite3Driver } = pkg;
 
 export class SQLitePool extends DatabaseConnectionPool {
-    filename: string;
+    private filename: string;
 
     constructor(filename: string) {
         super();
@@ -27,10 +27,11 @@ export class SQLiteChatDB extends ChatDatabase {
     }
 
     async getChat(jid: string): Promise<Chat> {
-        const result = await this.cp?.db?.get(`SELECT * FROM chat WHERE chatId = ?`, [jid]);
+        const result =  await this.cp?.db?.get(`SELECT * FROM chat WHERE chatId = ?`, [jid]);
         if (!result) {
             await this.newChat(jid);
-            return { chatId: jid, isBotEnabled: 1, prefix: "!" };
+            const chat = { chatId: jid, isBotEnabled: 1, prefix: "!", adminOnly: 0, customProfanityWords: '', profanityFilterEnabled: 0 };
+            return chat;
         };
         return result as Chat;
     }
@@ -49,13 +50,14 @@ export class SQLiteChatDB extends ChatDatabase {
 
 export class SQLiteMemberDB extends MemberDatabase {
     async addMemberToChat(chatJid: string, id: string): Promise<void> {
-        await this.cp?.db?.run(`INSERT INTO member (id, chatId) VALUES (?, ?)`,
+        console.log(chatJid, id);
+        await this.cp?.db?.run(`INSERT INTO member (jid, chatId) VALUES (?, ?)`,
             [id, chatJid]
         );
     }
 
     async deleteMemberFromChat(chatJid: string, id: string): Promise<void> {
-        await this.cp?.db?.run(`DELETE FROM member WHERE chatId = ? AND id = ?`, [chatJid, id]);
+        await this.cp?.db?.run(`DELETE FROM member WHERE chatId = ? AND jid = ?`, [chatJid, id]);
     }
 
     async getAllChatMembers(chatJid: string): Promise<Member[]> {
@@ -65,25 +67,28 @@ export class SQLiteMemberDB extends MemberDatabase {
     }
 
     async getChatMember(chatJid: string, id: string): Promise<Member> {
-        let result = await this.cp?.db?.get(`SELECT * FROM member WHERE chatId = ? AND id = ?`, [
+        let result = await this.cp?.db?.get(`SELECT * FROM member WHERE chatId = ? AND jid = ?`, [
             chatJid,
             id
         ]);
         if (result === undefined) {
-            await this.addMemberToChat(chatJid, id);
-            return { chatId: chatJid, id: id, messages: 0, points: 0, silenced: 0, warns: 0 };
+            if (chatJid != undefined && id != undefined) {
+                await this.addMemberToChat(chatJid, id);
+            }
+            // return mock user to avoid duplicated cases
+            return { chatId: chatJid, jid: id, messages: 0, points: 0, silenced: 0, warns: 0 };
         };
         return result as Member;
     }
 
     async updateChatMember(member: Member): Promise<void> {
-        await this.cp?.db?.run(`UPDATE member SET warns = ?, points = ?, messages = ?, silenced = ? WHERE chatId = ? AND id = ?`, [
+        await this.cp?.db?.run(`UPDATE member SET warns = ?, points = ?, messages = ?, silenced = ? WHERE chatId = ? AND jid = ?`, [
             member.warns,
             member.points,
             member.messages,
             member.silenced,
             member.chatId,
-            member.id
+            member.jid
         ]);
     }
 }

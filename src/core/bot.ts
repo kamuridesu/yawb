@@ -1,14 +1,21 @@
 import { Boom } from '@hapi/boom';
-import P from 'pino';
+import Pino from 'pino';
 
-import { makeWASocket, DisconnectReason,  ParticipantAction, proto } from "@whiskeysockets/baileys";
+import { makeWASocket, DisconnectReason,  ParticipantAction, proto, useMultiFileAuthState, makeCacheableSignalKeyStore, downloadMediaMessage } from "@whiskeysockets/baileys";
 import { BotConfig } from "../configs/botConfig.js";
 import { parseMessage } from './message/parsers.js';
-import { State } from 'src/core/storage/state.js';
-import { DatabaseFactory } from 'src/db/factory.js';
+import { State } from 'src/core/state/state.js';
+import { DatabaseFactory } from 'src/configs/db/factory.js';
 import { Message } from './message/message.js';
 import { normalizeTextMentions } from '../helpers/text.js';
 import { Media, ParsedMessage } from './message/types.js';
+
+const { state, saveCreds } = await useMultiFileAuthState("auth_info_baileys");
+
+const logger = Pino().child({
+    level: 'debug',
+    stream: 'store',
+});
 
 export class Bot {
     public name: string;
@@ -28,37 +35,41 @@ export class Bot {
     }
 
     async init() {
-        const { state, saveCreds } = await this.stateDB.asState();
+        // const { state, saveCreds } = await this.stateDB.asState();
 
         this.sock = makeWASocket({
             printQRInTerminal: true,
             auth: {
                 creds: state.creds,
-                keys: state.keys
+                keys: makeCacheableSignalKeyStore(state.keys, logger as any)
             },
-            syncFullHistory: false
+            syncFullHistory: false,
+            shouldSyncHistoryMessage: () => false,
+            logger: logger as any,
+            version: [2, 3000, 1015901307]
         });
 
-        this.sock.ev.on("connection.update", saveCreds);
+        this.sock.ev.on("creds.update", saveCreds);
 
         this.sock.ev.on('connection.update', (update) => {
-            this.botNumber = state.creds.me?.id.replace(/:\d+/, "");
+            this.botNumber = state?.creds.me?.id.replace(/:\d+/, "");
             const { connection, lastDisconnect } = update
             if (connection === 'close') {
                 const shouldReconnect = (lastDisconnect?.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut
                 console.log('connection closed due to ', lastDisconnect?.error, ', reconnecting ', shouldReconnect)
                 if (shouldReconnect) {
-                    return this.init();
+                    this.init();
                 }
             } else if (connection === 'open') {
                 console.log('opened connection')
             }
         });
 
-        this.sock.ev.on("messages.upsert", async (handle: { messages: any, type: string }) => {
-            console.log("======= received msg========")
-            for (const message of handle.messages) {
-                await this.handlers.handle(message);
+        this.sock.ev.on('messages.upsert', async (handle: { messages: any; type: string; }) => {
+            for (let message of handle.messages) {
+                if (!message.key.fromMe && handle.type === "notify") {
+                    await this.handlers.handle(message);
+                }
             }
         });
     }
@@ -126,6 +137,10 @@ export class Bot {
         } finally {
             return sentMessage;
         }
+    }
+
+    async downloadMedia(message: proto.WebMessageInfo): Promise<Buffer<ArrayBufferLike>> {
+        return await downloadMediaMessage(message, "buffer", {});
     }
 
 }

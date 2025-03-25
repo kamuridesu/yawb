@@ -11,7 +11,7 @@ export async function parseMessage(message: WAMessage, bot: Bot) {
     const originJid = message.key.remoteJid ?? "";
 
     const authorBuilder = new AuthorBuilder()
-        .setChatJid(originJid)
+        .setJid(originJid)
         .setName(message.pushName ?? "")
         .setChatJid(originJid)
         .setIsBotOwner(false);
@@ -22,15 +22,23 @@ export async function parseMessage(message: WAMessage, bot: Bot) {
         .setRaw(message);
 
     const parseBody = {
-        "conversation": () => parsedMessageBuilder.setBody(message.message?.conversation ?? ""),
-        "imageMessage": () => parsedMessageBuilder.setBody(message.message?.imageMessage?.caption ?? ""),
-        "videoMessage": () => parsedMessageBuilder.setBody(message.message?.videoMessage?.caption ?? ""),
+        "conversation": () => {
+            parsedMessageBuilder.setBody(message.message?.conversation ?? "");
+        },
+        "imageMessage": () => {
+            parsedMessageBuilder.setBody(message.message?.imageMessage?.caption ?? "")
+            .setMediaType("image");
+        },
+        "videoMessage": () => {
+            parsedMessageBuilder.setBody(message.message?.videoMessage?.caption ?? "")
+            .setMediaType("video");
+        },
         "extendedTextMessage": () => {
             parsedMessageBuilder.setBody(message.message?.extendedTextMessage?.text ?? "");
             const type = messageTypes.find(type => JSON.stringify(message.message).includes(type));
             if (!type) return;
             parsedMessageBuilder.setMentions(message.message?.extendedTextMessage?.contextInfo?.mentionedJid ?? []);
-            const unparsedQuotedMessage = JSON.parse(JSON.stringify(message).replace('quotedM', 'm')).message.extendedTextMessage.contextInfo;
+            const unparsedQuotedMessage = message.message?.extendedTextMessage?.contextInfo;
             if (!unparsedQuotedMessage || !unparsedQuotedMessage.participant) {
                 return;
             }
@@ -41,9 +49,9 @@ export async function parseMessage(message: WAMessage, bot: Bot) {
                     .setChatJid(originJid)
                     .setIsBotOwner(false)
                     .build(),
-                body: unparsedQuotedMessage.message !== undefined ? unparsedQuotedMessage.message.conversation
-                    ?? (unparsedQuotedMessage.message.imageMessage
-                        ?? (unparsedQuotedMessage.message.videoMessage ?? "")) : "",
+                body: unparsedQuotedMessage.quotedMessage !== undefined ? unparsedQuotedMessage.quotedMessage?.conversation
+                    ?? (unparsedQuotedMessage.quotedMessage?.imageMessage?.caption
+                        ?? (unparsedQuotedMessage.quotedMessage?.videoMessage?.caption ?? "")) : "",
                 raw: unparsedQuotedMessage,
                 stanzaId: unparsedQuotedMessage.stanzaId
             }

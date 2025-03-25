@@ -1,14 +1,13 @@
 import { Emojis } from "../../common/emojis.js";
 import { ParsedMessage } from "../../core/message/types.js";
-import { sendReactionMessage } from "../helpers.js";
 
 export async function isGroupAndAdmin(message: ParsedMessage) {
     if (message.group === undefined) {
-        await sendReactionMessage(message, Emojis.fail, "Este comando pode ser usado apenas em grupos!");
+        await message.reply("Este comando pode ser usado apenas em grupos!", Emojis.fail);
         return false;
     }
     if (!(await message!.author!.isAdmin())) {
-        await sendReactionMessage(message, Emojis.fail, "Este comando pode ser usado apenas por admins!");
+        await message.reply("Este comando pode ser usado apenas por admins!", Emojis.fail);
         return false;
     }
     return true;

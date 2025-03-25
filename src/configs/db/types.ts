@@ -2,10 +2,13 @@ export type Chat = {
     chatId: string;
     isBotEnabled: number;
     prefix: string;
+    adminOnly: number;
+    profanityFilterEnabled: number;
+    customProfanityWords: string;
 }
 
 export type Member = {
-    id: string;
+    jid: string;
     chatId: string;
     warns: number;
     points: number;

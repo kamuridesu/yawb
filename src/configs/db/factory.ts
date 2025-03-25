@@ -8,8 +8,8 @@ export enum DBType {
 
 export class DatabaseFactory {
 
-    protected dbType: DBType;
-    protected cp?: DatabaseConnectionPool;
+    private dbType: DBType;
+    private cp?: DatabaseConnectionPool;
     chat?: ChatDatabase;
     member?: MemberDatabase;
     filter?: FilterDatabase;

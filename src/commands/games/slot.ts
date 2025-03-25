@@ -1,8 +1,6 @@
 import { Emojis } from "../../common/emojis.js";
 import { Bot } from "../../core/bot.js";
 import { ParsedMessage } from "../../core/message/types.js";
-import { sendReactionMessage } from "../helpers.js";
-
 export async function slotMachine(message: ParsedMessage, _: string[], __: Bot) {
     const fruits = Array.from('🥑🍉🍓🍎🍍🥝🍑🥥🍋🍐🍌🍒🔔🍊🍇');
     const sortedFruits: string[] = [];
@@ -23,6 +21,5 @@ export async function slotMachine(message: ParsedMessage, _: string[], __: Bot) 
 
 ${hasUserWon ? "Você ganhou! Meus parabéns" : "Você perdeu! Tente novamente."}
 `
-
-    await sendReactionMessage(message, Emojis.success, text);
+    await message.reply(text, Emojis.success);
 }

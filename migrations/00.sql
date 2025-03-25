@@ -1,12 +1,15 @@
 CREATE TABLE IF NOT EXISTS chat (
-    chatId TEXT PRIMARY KEY,
+    chatId TEXT PRIMARY KEY NOT NULL,
     isBotEnabled INTEGER DEFAULT 1,
-    prefix VARCHAR(1) DEFAULT '/'
+    prefix VARCHAR(1) DEFAULT '/',
+    adminOnly INTEGER DEFAULT 0,
+    profanityFilterEnabled INTEGER DEFAULT 0,
+    customProfanityWords TEXT DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS member (
-    id TEXT,
-    chatId TEXT,
+    jid TEXT NOT NULL,
+    chatId TEXT NOT NULL,
     warns INTEGER DEFAULT 0,
     points INTEGER DEFAULT 0,
     messages INTEGER DEFAULT 0,
@@ -15,9 +18,9 @@ CREATE TABLE IF NOT EXISTS member (
 );
 
 CREATE TABLE IF NOT EXISTS filter (
-    chatId TEXT,
-    pattern TEXT PRIMARY KEY,
-    kind TEXT,
-    response TEXT,
+    chatId TEXT NOT NULL,
+    pattern TEXT PRIMARY KEY NOT NULL,
+    kind TEXT NOT NULL,
+    response TEXT NOT NULL,
     FOREIGN KEY(chatId) REFERENCES chat(chatId)
 );

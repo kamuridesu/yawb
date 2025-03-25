@@ -1,7 +1,6 @@
 import { Emojis } from "../../common/emojis.js";
 import { Bot } from "../../core/bot.js";
 import { ParsedMessage } from "../../core/message/types.js";
-import { sendReactionMessage } from "../helpers.js";
 import { isGroupAndAdmin } from "./guards.js";
 
 export async function stopBot(message: ParsedMessage, _: string[], bot: Bot) {
@@ -11,7 +10,7 @@ export async function stopBot(message: ParsedMessage, _: string[], bot: Bot) {
         if (chatInfo.isBotEnabled == 1) {
             chatInfo.isBotEnabled = 0;
             await bot.database.chat?.updateChat(chatInfo);
-            await sendReactionMessage(message, Emojis.success, `Bot desativado. Para ativar use ${chatInfo.prefix}start`);
+            await message.reply(`Bot desativado. Para ativar use ${chatInfo.prefix}start`, Emojis.success);
         }
     }
 }
@@ -23,16 +22,16 @@ export async function startBot(message: ParsedMessage, _: string[], bot: Bot) {
         if (chatInfo.isBotEnabled == 0) {
             chatInfo.isBotEnabled = 1;
             await bot.database.chat?.updateChat(chatInfo);
-            await sendReactionMessage(message, Emojis.success, `Bot ativo. Para desativar use ${chatInfo.prefix}stop`);
+            await message.reply(`Bot ativo. Para desativar use ${chatInfo.prefix}stop`, Emojis.success);
         }
     }
 }
 
 export async function broadcastToGroups(message: ParsedMessage, args: string[], bot: Bot) {
     if (!message.author?.isBotOwner) {
-        return await sendReactionMessage(message, Emojis.fail, "Este comando pode ser usado apenas pelo dono do bot.");
+        return await message.reply("Este comando pode ser usado apenas pelo dono do bot.", Emojis.fail);
     }
-    if (args.length < 1) return await sendReactionMessage(message, Emojis.fail, "Faltando texto para enviar.");
+    if (args.length < 1) return await message.reply("Faltando texto para enviar.", Emojis.fail);
     const groups = await bot.fetchAllGroups();
     if (groups) {
         const promises: Promise<void>[] = [];
@@ -43,7 +42,7 @@ export async function broadcastToGroups(message: ParsedMessage, args: string[], 
             })());
         });
         await Promise.all(promises);
-        return await sendReactionMessage(message, Emojis.success, "Transmissão enviada com sucesso");
+        return await message.reply("Transmissão enviada com sucesso", Emojis.success);
     }
-    return await sendReactionMessage(message, Emojis.fail, "Não foi possível listar os grupos");
+    return await message.reply("Não foi possível listar os grupos", Emojis.fail);
 }

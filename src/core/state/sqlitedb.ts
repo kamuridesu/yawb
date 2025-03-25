@@ -9,7 +9,7 @@ import { SelectResultType } from "./types.js";
 
 
 export class StateSQLiteDB extends State {
-    filename: string;
+    private filename: string;
 
     constructor(config: { ["filename"]: string, ["table"]?: string }) {
         super();
@@ -70,18 +70,19 @@ export class StateSQLiteDB extends State {
 
     async write(id: string, data: any): Promise<void> {
         this.databaseIsNull();
-        // console.log("============== WRITE ===============: " + id)
+        console.log("============== WRITE ===============: " + id)
         const fixed = JSON.stringify(data, BufferJSON.replacer);
         await this.db?.run(`INSERT INTO ${this.table} (
             id, value, session
          ) VALUES (?, ?, ?) 
          ON CONFLICT DO UPDATE SET value=?, timestamp=CURRENT_TIMESTAMP`,
             [id, fixed, this.session, fixed]);
+        console.log("done")
     }
 
     async delete(id: string): Promise<void> {
         this.databaseIsNull();
-        // console.log("============== DELETE ===============: " + `DELETE FROM ${this.table} WHERE id = '${id}'`)
+        console.log("============== DELETE ===============: " + `DELETE FROM ${this.table} WHERE id = '${id}'`)
         await this.db?.run(`DELETE FROM ${this.table} WHERE id = ?`, [id]);
     }
 

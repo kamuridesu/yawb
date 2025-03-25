@@ -1,9 +1,10 @@
 # Yet Another WhatsApp Bot
 
 TODO:
-1. Add message parser
-2. Add group parser
-3. Add command handler
-4. Add automenu
-5. Add commands
-6. Manage multiple states
+[x] Add message parser
+[x] Add group parser
+[x] Add command handler
+[ ] Create Relational Object Mapping to manage and store objects in database without using too many queries.
+[ ] Add automenu
+[ ] Add commands
+[ ] Manage multiple states

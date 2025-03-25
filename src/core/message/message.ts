@@ -1,9 +1,9 @@
 import { WAMessage } from "@whiskeysockets/baileys";
 import { Bot } from "../bot.js";
 import { parseMessage } from "./parsers.js";
-import { commandHandleProvisory } from "../../commands/commands.js";
+import { commandHandler } from "../../commands/commands.js";
 import { ParsedMessage } from "./types.js";
-import { Chat } from "src/db/types.js";
+import { Chat, Member } from "../../configs/db/types.js";
 
 export class Message {
     bot: Bot;
@@ -13,17 +13,19 @@ export class Message {
     }
 
     async handle(rawMessage: WAMessage) {
+        console.log("handle");
         if ((!rawMessage.message)
             || (rawMessage.key && rawMessage.key.remoteJid === "status@broadcast")
             || (rawMessage.key && rawMessage.key.id?.startsWith("BAE5") && rawMessage.key.id.length == 16)
             || (rawMessage.key.fromMe)) {
-            return false;
+            return;
         }
         rawMessage.message =
             Object.keys(rawMessage.message)[0] === "ephemeralMessage"
                 ? rawMessage.message?.ephemeralMessage?.message
                 : rawMessage.message;
         const message = await parseMessage(rawMessage, this.bot);
+        console.log(message);
         const user = await this.bot.database.member?.getChatMember(message?.author?.chatJid!, message?.author?.jid!);
         if (user?.silenced == 1) {
             await message?.delete();
@@ -37,7 +39,7 @@ export class Message {
         if (!((chatInfo?.isBotEnabled ?? 0) == 1)) {
             return;
         }
-        return await this.handleChat(message);
+        return await this.handleChat(message, user);
     }
 
     private async handleCommand(message: ParsedMessage, chatInfo: Chat) {
@@ -50,11 +52,10 @@ export class Message {
                 return;
             }
         }
-        await commandHandleProvisory(command, message, args, this.bot);
+        await commandHandler(command, message, args, this.bot);
     }
 
-    private async handleChat(message: ParsedMessage) {
-        const member = await this.bot.database.member?.getChatMember(message!.author!.chatJid!, message!.author!.jid!);
+    private async handleChat(message: ParsedMessage, member: Member | undefined) {
         if (member == undefined) {
             throw new Error("Database not ready");
         }

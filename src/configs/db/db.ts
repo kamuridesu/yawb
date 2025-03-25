@@ -2,7 +2,7 @@ import * as sqlite3 from "sqlite";
 import { Chat, Filter, Member } from "./types.js";
 
 export abstract class DatabaseConnectionPool {
-    protected _db?: sqlite3.Database;
+    private _db?: sqlite3.Database;
 
     set db(database: sqlite3.Database) {
         this._db = database;
@@ -13,7 +13,7 @@ export abstract class DatabaseConnectionPool {
         return this._db;
     }
 
-    protected databaseIsNull() {
+    private databaseIsNull() {
         if (this._db == undefined) {
             throw new Error("Database is not instantiated");
         }

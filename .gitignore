@@ -3,3 +3,4 @@ node_modules/
 *lock*
 dist/
 *.sqlite
+auth_info_baileys

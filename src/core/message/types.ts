@@ -1,4 +1,5 @@
 import { GroupMetadata, GroupParticipant, WAMessage } from "@whiskeysockets/baileys";
+import { proto } from "@whiskeysockets/baileys";
 import { Bot } from "../bot.js";
 
 export const messageTypes = [
@@ -146,10 +147,10 @@ export class Group {
 
 export type QuotedMessage = {
     type: string;
-    stanzaId: string;
+    stanzaId: string | null | undefined;
     author: Author;
-    body: string;
-    raw: string;
+    body: string | undefined;
+    raw: proto.IContextInfo;
 }
 
 type Image = {
@@ -168,26 +169,49 @@ type Audio = {
     mimetype: string;
 }
 
-export type Media = Audio | Video | Image;
+type Sticker = {
+    sticker: Buffer;
+}
+
+export type Media = Audio | Video | Image | Sticker;
 
 export class ParsedMessage {
     id?: string | null;
     body?: string;
     author?: Author;
     group?: Group;
+    mediaType?: "audio" | "video" | "image";
     mentions?: string[];
     quotedMessage?: QuotedMessage;
     raw?: WAMessage;
     bot?: Bot;
 
-    async reply(text: string, options?: any): Promise<void>;
-    async reply(media: Media, options?: any): Promise<void>;
-    async reply(textOrMedia: string | Media, options?: any): Promise<void> {
-        const opts = options ?? {}
+    async reply(text: string, options?: object): Promise<void>;
+    async reply(text: string, reaction: string, options?: object): Promise<void>;
+    async reply(media: Media, options?: object): Promise<void>;
+    async reply(media: Media, reaction: string, options?: object): Promise<void>;
+    async reply(textOrMedia: string | Media, secondParam?: string | object, thirdParam?: object): Promise<void> {
+        const isReaction = typeof secondParam === 'string';
+        const reaction = isReaction ? secondParam : undefined;
+        const options = (isReaction ? thirdParam : secondParam) ?? {};
+        const opts: any = Object.assign({}, options);
         opts.quoted = this.raw;
+
         if (textOrMedia) {
             await this.bot?.sendTextMessage(this.author!.chatJid!, textOrMedia, opts);
         }
+
+        if (reaction) {
+            await this.react(reaction);
+        }
+    }
+
+    async downloadMedia() {
+        const messageMedia =
+            this.quotedMessage !== undefined
+                ? JSON.parse(JSON.stringify(this.raw).replace("quotedM", "m")).message.extendedTextMessage.contextInfo
+                : this.raw;
+        return await this.bot?.downloadMedia(messageMedia as any);
     }
 
     async react(emoji: string) {
@@ -195,7 +219,7 @@ export class ParsedMessage {
     }
 
     async edit(text: string) {
-        await this.bot?.sendTextMessage(this.author!.chatJid!, text, {edit: this.raw?.key});
+        await this.bot?.sendTextMessage(this.author!.chatJid!, text, { edit: this.raw?.key });
     }
 
     async delete() {
@@ -246,6 +270,11 @@ export class ParsedMessageBuilder {
 
     setBot(bot: Bot) {
         this.parsedMessage.bot = bot;
+        return this;
+    }
+
+    setMediaType(mediaType: "audio" | "video" | "image") {
+        this.parsedMessage.mediaType = mediaType;
         return this;
     }
 
